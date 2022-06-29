@@ -1,0 +1,72 @@
+什么是Service Mesh?
+
+Service Mesh是一种可配置的低时延基础设施层， 它通过API来实现对大量的服务之间的内部网络通讯进行管理。 Service Mesh可以确保容器化并且非永久的应用服务之间的通讯快速可靠并且安全。 
+它所提供的具体主要功能包括服务发现、负载均衡、加密、提高可观察性、提高可追踪性、认证和鉴权， 并且提供熔断机制。
+
+这些功能的实现手段通常是为每一个服务实例添加一个代理实例， 一般称之为sidecar。 sidecar主要工作就是处理内部服务之间的通信和安全方面的事务， 并且监控服务的状态。实际上，所有可以从单个服务中抽象出来具有共性的工作它都可以完成。
+这样一来, 开发者可以只围绕服务的业务逻辑来完成开发、支持和维护的工作。 而运维团队也只需要维护service mesh并且在它之上运行app就可以了。
+
+Istio是现在最著名的Service Mesh架构解决方案， 它的开发者包括Google、IBM和Lyft。 而Kubernets这个由Google设计的容器编排框架，也自然而然的成为了Istio唯一支持的容器编排框架。各大厂商们同时也在试图创建一个提供商业支持的版本。
+他们能为这个开源项目提供多大的附加价值，我们拭目以待。
+
+
+Istio不是唯一的选择， 其他的Service Mesh的实现方式也在不断的开发和探索中。 但是单从现在的项目案例数量上来看， 目前sidecar proxy模式还是一家独大。 当然其他架构的成功案例也不是没有， 
+Netflix的技术解决方案是通过各自独立的软件库(例如Ribbon, Hysterix, Eureka, Archaius)来实现Service Mesh的功能, 一些平台例如Azure Service Fabric直接将Service Mesh功能嵌入到了应用框架里面。
+
+
+以下是与Service Mesh的服务和功能组件有关的术语解释:
+
+1. 容器编排框架(Container orchestration framework)
+当越来越多的容器被加入到应用基础框架当中来, 一个独立的监控和管理容器的编排框架成了基本的需求。 Kubernetes基本上垄断了这一市场, 即使是它的主要竞争对手们，例如Docker Strom和Mesosphere DC/OS， 
+也不得不在自己的产品中提供集成Kubernetes作为替代方案。
+
+2.服务和实例(Kubernets pods)
+一个实例就是一个单独运行的微服务的拷贝。
+有时实例就是一个容器。
+但是在Kubernetes中， 一个实例是由一小组独立的容器构成的， 我们称之为pod。
+客户端很少直接访问实例或者pod, 而是会去访问一个叫服务(service)的对象， 这个是由相同类型的实例或者pods（拷贝）组成的集合， 从而实现可扩展性和容错性。
+
+
+3. Sidecar代理
+Sidecar代理与实例或者pod平行运行， 其目的是路由或者代理进出容器的网络通讯。
+而Sidecar与其他Sidecar代理通讯则由编排框架来管理(Kubernets)
+很多Service Mesh的实现是通过Sidecar Proxy来截取并且管理进出实例或者则pod的流量。
+
+4. 服务发现(Service discovery) 
+当一个实例需要与其他类型的服务进行交互时， 它需要找到一个健康的可用的其他服务的实例
+通常， 这个实例会为此执行一次DNS查找， 
+容器编排框架内部会维护一个实例列表, 并且提供DNS查询接口， 随时响应DNS查询请求。
+
+5. 负载均衡(Load balancing)
+大多数的容器编排框架已经提供了4层(传输层)负载均衡
+但Service Mesh通过更丰富的算法实现了适应范围更广的7层(应用层)负载均衡和更强大的流量管理能力。
+负载均衡参数可以通过API来进行修改， 使得它可以适应blue-green部署和canary部署
+
+6. 加密(Encryption)
+Service Mesh可以加密或者解密网络请求和响应, 这将减轻业务服务的负担。
+Service Mesh同样可以优先复用持久化的网络连接， 减少重复新建连接的巨大开销, 从而提升性能。
+最常见的加密通讯实现是mutal TLS(mTLS), 公玥基础服务(public key infrastructure)通过sidecar代理来生成和分发证书与密钥。
+
+7. 认证和鉴权(Authentication and authorization)
+Service Mesh可以对内外部的网络请求进行认证和鉴权, 并且只将合法的请求转发给服务实例。
+
+8. 熔断机制(circuit breaker pattern)
+Service Mesh可以提供熔断机制， 这样可以将不健康的实例隔离, 然后在实例恢复正常后逐步的将其重新纳入到健康的实例池当中
+
+
+Service Mesh中负责管理服务实例间网络流量的部分被称作数据层(data plane)。
+而控制数据层(data plane)行为的配置文件则是由单独的控制层(control plane)来生成和发布。
+控制层(control plane)通常包括或者预留连接API、命令行接口和图形界面接口的能力, 来实现对app的管理。
+Service Mesh中的控制层(control plane)将生成的配置文件分发到数据层(data plane)中的sidecar代理。
+
+Service Mesh通常被用来解决采用容器和微服务带来的棘手的运维问题。
+那些微服务技术探索的先行者，例如Lyft、Netflix和Twitter， 他们为全球数百万用户提供稳定的服务。
+但是对于需求没有这么强烈的用户， 简单的架构基本上就可以满足要求。
+
+Service Mesh架构不能解决全部的运维和交付问题。
+架构师和开发者有大量的工具可以使用， 但同时也有大量的问题需要应对， 不同的工具适用于不同的问题。
+比如NGINX Microservices Reference架构就包含几种不同的模式， 提供了一系列的通过为服务来解决问题的方法。
+
+那些Service Mesh架构中应用到的元素, 例如NGINX、容器、Kubernetes和微服务, 在非Service Mash的方案中同样可以被应用。
+比如, Istio一个完整的Service Mesh架构解决方案, 但是它的模块化设计使得开发者可以只从中挑选他们需要的技术组件来完成自己的开发。
+所以，哪怕你不确定未来是否需要或者合适需要实现自己的Service Mesh应用， 对Service Mesh有一个详细的了解总是值得的。
